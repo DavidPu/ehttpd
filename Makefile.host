@@ -1,0 +1,65 @@
+.PHONY: default all clean
+default: all host_target
+
+# this turns off the suffix rules built into make
+.SUFFIXES:
+
+# this turns off the RCS / SCCS implicit rules of GNU Make
+% : RCS/%,v
+% : RCS/%
+% : %,v
+% : s.%
+% : SCCS/s.%
+
+# keep the dependency file.
+%.d: ;
+.PRECIOUS: %.d
+
+# If a rule fails, delete $@.
+.DELETE_ON_ERROR:
+
+hide := $(if $(V),,@)
+
+
+# CC        := clang
+# CFLAGS    := -Wall -DLINUX_BUILD -DCONFIG_SERVER_PORT=8888 -Imain -Ihost
+# CFLAGS    += -O1 -g -fsanitize=address -fno-omit-frame-pointer
+# CFLAGS    += -fcolor-diagnostics
+CC        := gcc
+CFLAGS    := -Wall -DLINUX_BUILD -DCONFIG_SERVER_PORT=8888 -Imain -Ihost
+CFLAGS    += -O1 -g
+
+out_dir   := out
+target    := $(out_dir)/bin/ehttpd
+src_files := main/picohttpparser.c \
+	     main/http_server.c \
+	     host/mock_host.c \
+	     host/mock_http_server_main.c \
+
+rl_files  := main/urlroute.rl main/http_method.rl main/mimetype.rl main/uripathparser.rl
+rl_c_gen  := $(addprefix $(out_dir)/gen/,$(rl_files:.rl=.rl.c))
+src_files += $(rl_c_gen)
+
+obj_files := $(addprefix $(out_dir)/,$(src_files:.c=.o))
+
+.PHONY: host_target
+host_target: $(target)
+
+# .PHONY: out/host/mock_http_server_main.o
+
+$(rl_c_gen): $(out_dir)/gen/%.rl.c: %.rl
+	@mkdir -p $(dir $@)
+	$(hide) ragel -G0 -o $@ $<
+
+$(obj_files): $(out_dir)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(hide) $(CC) -c -MP -MMD $(CFLAGS) $< -o $@
+
+$(target): $(obj_files)
+	@mkdir -p $(dir $@)
+	$(hide) $(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+
+all: $(target)
+
+clean:
+	-$(hide)rm -rf $(out_dir)

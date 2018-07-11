@@ -1,0 +1,19 @@
+#
+# This is a project Makefile. It is assumed the directory this Makefile resides in is a
+# project subdirectory.
+#
+
+PROJECT_NAME := ehttpd
+include $(IDF_PATH)/make/project.mk
+
+rl_files  := main/urlroute.rl \
+	     main/http_method.rl \
+	     main/mimetype.rl \
+	     main/uripathparser.rl
+
+rl_c_gen  := $(rl_files:.rl=.rl.c)
+ehttpd_gen_c: $(rl_c_gen)
+
+$(rl_c_gen): %.rl.c: %.rl
+	@mkdir -p $(dir $@)
+	@ragel -G0 -o $@ $<

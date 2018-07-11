@@ -1,0 +1,38 @@
+.PHONY: default all clean
+default: all spiffs_flash_cmd
+
+spiffs:   mkspiffs djb2 hashdirs.sh maze_spiffs.bin
+djb2:     out/bin/djb2
+mkspiffs: mkspiffs/mkspiffs
+
+# build a offline Google blockly-games runs on ESP32
+blockly-games-en.zip:
+	echo ======downloading blockly-games-en.zip============
+	wget -qO blockly-games-en.zip https://github.com/google/blockly-games/raw/offline/generated/blockly-games-en.zip
+
+maze_spiffs.bin: blockly-games-en.zip djb2 mkspiffs
+	rm blockly-games -rf
+	unzip -q blockly-games-en.zip  blockly-games/index.html blockly-games/en/maze* blockly-games/en/third-party* blockly-games/en/common*
+	sed 's|url=en/index.html|url=maze.html|g' blockly-games/index.html > blockly-games/en/index.html
+	touch blockly-games/en/common/storage.js
+	rm -rf blockly-games/en/third-party/midi-js-soundfonts blockly-games/index.html
+	./hashdirs.sh blockly-games/en blockly-games/maze_spiffs
+	./mkspiffs/mkspiffs -c blockly-games/maze_spiffs -b 4096 -p 256 -s $$((4096*700)) maze_spiffs.bin
+
+mkspiffs/mkspiffs:
+	git clone --recursive https://github.com/igrr/mkspiffs.git
+	make -C $(dir $@) dist BUILD_CONFIG_NAME="-esp-idf" CPPFLAGS="-DSPIFFS_OBJ_META_LEN=4"
+
+out/bin/djb2:
+	@mkdir -p $(dir $@)
+	gcc -DLINUX_BUILD -o $@ main/djb2.c
+
+spiffs_flash_cmd: spiffs
+	addr=$$(make partition_table |grep -o "spiffs,0x[0-9]\+" | sed 's|spiffs,||g'); \
+	cmd=$$(make partition_table |grep "python.* write_flash"); \
+	$$cmd $$addr maze_spiffs.bin
+	make ehttpd_gen_c app-flash
+all:
+
+clean:
+	@rm -rfv blockly-games* mkspiffs* out/bin/djb2
