@@ -44,7 +44,7 @@ build and flash basic hello world echo server:
     cd $IDF_PATH/ehttpd
     make ehttpd_gen_c flash
 
-ehttpd includes a [Makefile.blockly.spiffs](../blob/master/Makefile.blockly.spiffs) Makefile to build a complete Google [Blockly-Games/maze](http://blockly-games.appspot.com/maze) web application and run on ESP-32.
+ehttpd includes a [Makefile.blockly.spiffs](../master/Makefile.blockly.spiffs) Makefile to build a complete Google [Blockly-Games/maze](http://blockly-games.appspot.com/maze) web application and run on ESP-32.
 Run beow commands to build all related images and flash to ESP32 board:
 
     sudo apt install zopfli
