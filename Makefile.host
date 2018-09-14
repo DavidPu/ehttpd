@@ -63,3 +63,5 @@ all: $(target)
 
 clean:
 	-$(hide)rm -rf $(out_dir)
+
+-include $(patsubst %.o,%.d,$(obj_files))
